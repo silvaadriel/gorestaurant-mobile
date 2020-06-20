@@ -73,38 +73,71 @@ const FoodDetails: React.FC = () => {
 
   useEffect(() => {
     async function loadFood(): Promise<void> {
-      // Load a specific food with extras based on routeParams id
+      const { data: loadedFood } = await api.get<Food>(
+        `foods/${routeParams.id}`,
+      );
+
+      setFood({ ...loadedFood, formattedPrice: formatValue(loadedFood.price) });
+      setExtras(loadedFood.extras.map(extra => ({ ...extra, quantity: 0 })));
     }
 
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    setExtras(
+      extras.map(extra =>
+        extra.id === id
+          ? { ...extra, quantity: extra.quantity ? extra.quantity + 1 : 1 }
+          : extra,
+      ),
+    );
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    setExtras(
+      extras.map(extra =>
+        extra.id === id
+          ? { ...extra, quantity: extra.quantity && extra.quantity - 1 }
+          : extra,
+      ),
+    );
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(foodQuantity + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    setFoodQuantity(foodQuantity > 1 ? foodQuantity - 1 : foodQuantity);
   }
 
   const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
-  }, [isFavorite, food]);
+    setIsFavorite(!isFavorite);
+  }, [isFavorite]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const extrasTotal = extras.reduce(
+      (previousExtrasTotal: number, currentExtra: Extra) =>
+        previousExtrasTotal + currentExtra.value * currentExtra.quantity,
+      0,
+    );
+
+    const total = extrasTotal + food.price * foodQuantity;
+
+    return formatValue(total);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
     // Finish the order and save on the API
+    await api.post('orders', {
+      ...food,
+      id: undefined,
+      extras: extras.filter(extra => extra.quantity > 0),
+    });
+    navigation.navigate('MainBottom', {
+      screen: 'Dashboard',
+    });
   }
 
   // Calculate the correct icon name
